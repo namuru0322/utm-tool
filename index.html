@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UTM付きURL作成Tool</title>
+<style>
+  :root{
+    --bg:#F6F5F2;
+    --card:#FFFFFF;
+    --ink:#1F2A24;
+    --sub:#6B7570;
+    --accent:#2F6F4F;
+    --accent-dark:#245A3F;
+    --border:#E1DED6;
+    --danger:#B4472A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    padding:32px 16px 64px;
+    background:var(--bg);
+    font-family:"Hiragino Sans","Yu Gothic",sans-serif;
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+  }
+  .wrap{
+    width:100%;
+    max-width:640px;
+  }
+  .version{
+    text-align:right;
+    font-size:13px;
+    color:var(--sub);
+    margin-bottom:8px;
+  }
+  h1{
+    font-size:28px;
+    margin:0 0 8px;
+    letter-spacing:0.02em;
+  }
+  .lead{
+    font-size:17px;
+    color:var(--sub);
+    margin:0 0 28px;
+    line-height:1.7;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:28px 24px;
+  }
+  label{
+    display:block;
+    font-size:16px;
+    font-weight:600;
+    margin-bottom:8px;
+  }
+  .field{
+    margin-bottom:24px;
+  }
+  select, input[type="text"]{
+    width:100%;
+    font-size:18px;
+    padding:14px 14px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#fff;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  select:focus, input[type="text"]:focus{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+  .hint{
+    font-size:13px;
+    color:var(--sub);
+    margin-top:6px;
+  }
+  button.primary{
+    width:100%;
+    font-size:19px;
+    font-weight:700;
+    padding:16px;
+    border:none;
+    border-radius:8px;
+    background:var(--accent);
+    color:#fff;
+    cursor:pointer;
+  }
+  button.primary:hover{
+    background:var(--accent-dark);
+  }
+  .result-block{
+    margin-top:28px;
+    padding-top:24px;
+    border-top:1px solid var(--border);
+    display:none;
+  }
+  .result-block.show{
+    display:block;
+  }
+  textarea#resultUrl{
+    width:100%;
+    font-size:16px;
+    padding:14px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#FAFAF8;
+    color:var(--ink);
+    font-family:inherit;
+    resize:vertical;
+    min-height:80px;
+    line-height:1.6;
+  }
+  button.copy{
+    margin-top:12px;
+    width:100%;
+    font-size:17px;
+    font-weight:700;
+    padding:14px;
+    border:1px solid var(--accent);
+    border-radius:8px;
+    background:#fff;
+    color:var(--accent);
+    cursor:pointer;
+  }
+  button.copy:hover{
+    background:#EEF5F0;
+  }
+  button.copy.done{
+    background:var(--accent);
+    color:#fff;
+    border-color:var(--accent);
+  }
+  .error{
+    color:var(--danger);
+    font-size:15px;
+    margin-top:8px;
+    display:none;
+  }
+  .error.show{
+    display:block;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="version">index.html v1.0</div>
+  <h1>UTM付きURL作成Tool</h1>
+  <p class="lead">UTM付きのリンクを作成します。プルダウンで流入元を指定してください。</p>
+
+  <div class="card">
+    <div class="field">
+      <label for="source">流入元</label>
+      <select id="source">
+        <option value="x">X</option>
+        <option value="line">LINE</option>
+        <option value="youtube">Youtube</option>
+        <option value="instagram">Instagram</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="baseUrl">貼り付け先のURL</label>
+      <input type="text" id="baseUrl" placeholder="https://www.ones-will.com/contact/">
+      <div class="hint">ブログ記事やキャンペーンページなど、任意のURLを貼り付けてください。</div>
+    </div>
+
+    <div class="field">
+      <label for="campaign">キャンペーン名（任意）</label>
+      <input type="text" id="campaign" placeholder="空欄の場合は流入元ごとの標準値を使用します">
+      <div class="hint">例：投稿日や動画名を入れると、後でどの投稿からの流入か見分けやすくなります。</div>
+    </div>
+
+    <button class="primary" id="createBtn">作成</button>
+    <div class="error" id="errorMsg">URLを入力してください。</div>
+
+    <div class="result-block" id="resultBlock">
+      <label for="resultUrl">UTM付きURL</label>
+      <textarea id="resultUrl" readonly></textarea>
+      <button class="copy" id="copyBtn">コピー</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 流入元ごとの標準UTM値（OWMSプロジェクト マスターシート 13章準拠）
+  var DEFAULTS = {
+    x:         { source: "x",         medium: "social", campaign: "post" },
+    line:      { source: "line",      medium: "social", campaign: "line" },
+    youtube:   { source: "youtube",   medium: "social", campaign: "description" },
+    instagram: { source: "instagram", medium: "social", campaign: "profile" }
+  };
+
+  var sourceSelect = document.getElementById("source");
+  var baseUrlInput = document.getElementById("baseUrl");
+  var campaignInput = document.getElementById("campaign");
+  var createBtn = document.getElementById("createBtn");
+  var errorMsg = document.getElementById("errorMsg");
+  var resultBlock = document.getElementById("resultBlock");
+  var resultUrl = document.getElementById("resultUrl");
+  var copyBtn = document.getElementById("copyBtn");
+
+  createBtn.addEventListener("click", function () {
+    var url = baseUrlInput.value.trim();
+    errorMsg.classList.remove("show");
+    resultBlock.classList.remove("show");
+    copyBtn.classList.remove("done");
+    copyBtn.textContent = "コピー";
+
+    if (!url) {
+      errorMsg.classList.add("show");
+      return;
+    }
+
+    var def = DEFAULTS[sourceSelect.value];
+    var campaignValue = campaignInput.value.trim() || def.campaign;
+
+    var params = "utm_source=" + def.source +
+                 "&utm_medium=" + def.medium +
+                 "&utm_campaign=" + encodeURIComponent(campaignValue);
+
+    // 既に「?」がURLに含まれる場合は「&」で連結する
+    var separator = url.indexOf("?") === -1 ? "?" : "&";
+
+    var finalUrl = url + separator + params;
+
+    resultUrl.value = finalUrl;
+    resultBlock.classList.add("show");
+  });
+
+  copyBtn.addEventListener("click", function () {
+    if (!resultUrl.value) return;
+
+    function showCopied() {
+      copyBtn.textContent = "コピーしました";
+      copyBtn.classList.add("done");
+      setTimeout(function () {
+        copyBtn.textContent = "コピー";
+        copyBtn.classList.remove("done");
+      }, 1800);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(resultUrl.value).then(showCopied);
+    } else {
+      resultUrl.select();
+      document.execCommand("copy");
+      showCopied();
+    }
+  });
+</script>
+</body>
+</html>
