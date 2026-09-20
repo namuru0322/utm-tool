@@ -149,7 +149,7 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="version">index.html v1.0</div>
+  <div class="version">index.html v1.2</div>
   <h1>UTM付きURL作成Tool</h1>
   <p class="lead">UTM付きのリンクを作成します。プルダウンで流入元を指定してください。</p>
 
@@ -161,6 +161,7 @@
         <option value="line">LINE</option>
         <option value="youtube">Youtube</option>
         <option value="instagram">Instagram</option>
+        <option value="mukaiblog">向井成一郎公式ブログ</option>
       </select>
     </div>
 
@@ -193,7 +194,8 @@
     x:         { source: "x",         medium: "social", campaign: "post" },
     line:      { source: "line",      medium: "social", campaign: "line" },
     youtube:   { source: "youtube",   medium: "social", campaign: "description" },
-    instagram: { source: "instagram", medium: "social", campaign: "profile" }
+    instagram: { source: "instagram", medium: "social", campaign: "profile" },
+    mukaiblog: { source: "mukai-blog", medium: "referral", campaign: "blog" }
   };
 
   var sourceSelect = document.getElementById("source");
